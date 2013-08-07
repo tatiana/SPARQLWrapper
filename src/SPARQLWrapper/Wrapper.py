@@ -147,7 +147,8 @@ class SPARQLWrapper :
         are reset to their default values."""
         self.customParameters = {}
         if self._defaultGraph : self.customParameters["default-graph-uri"] = self._defaultGraph
-        self.returnFormat = self._defaultReturnFormat
+        # FIXME: The line bellow was totally messing up my requests after I set returnFormat... Very tricky
+        #self.returnFormat = self._defaultReturnFormat
         self.method    = GET
         self.queryType = SELECT
         self.queryString = """SELECT * WHERE{ ?s ?p ?o }"""
@@ -367,8 +368,8 @@ class SPARQLWrapper :
 
         request.add_header("User-Agent", self.agent)
         request.add_header("Accept", acceptHeader)
-        if (self.auth_mode == 'basic') and self.user and self.passwd:
-            request.add_header("Authorization", "Basic " + base64.encodestring("%s:%s" % (self.user,self.passwd)))
+        if self.user and self.passwd:
+            request.add_header("Authorization", "Basic {0}\n".format(base64.b64encode("{0}:{1}".format(self.user, self.passwd).encode("ascii")).decode("utf-8")))
 
         return request
 
