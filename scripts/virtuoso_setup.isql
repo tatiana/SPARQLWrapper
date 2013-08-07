@@ -1,0 +1,6 @@
+DB.DBA.USER_CREATE ('test', 'test');
+grant SPARQL_UPDATE to "test";
+
+DB.DBA.RDF_DEFAULT_USER_PERMS_SET ('test', 3);
+DB.DBA.RDF_GRAPH_USER_PERMS_SET ('http://example.com/', 'test', 3);
+DB.DBA.RDF_GRAPH_USER_PERMS_SET ('http://example.com/', 'nobody', 0);
