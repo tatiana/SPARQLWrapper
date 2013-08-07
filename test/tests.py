@@ -234,7 +234,8 @@ INSERT DATA INTO <http://example.com/>
 """
 
 SELECT_QUERY = """
-SELECT FROM <http://example.com/>
+SELECT *
+FROM <http://example.com/>
 {
     ?s ?p ?o .
 }
@@ -252,15 +253,16 @@ class AuthenticationTests(unittest.TestCase):
 
     user = "test"
     password = "test"
+    auth_mode = "digest"
     realm = "SPARQL"
     url = "http://localhost:8890/sparql-auth"
     graph = "http://example.com/"
 
     def runQuery(self, query):
         endpoint = SPARQLWrapper(self.url)
-        endpoint.setCredentials(self.user, self.password)
-        endpoint.setReturnFormat(JSON)
+        endpoint.setCredentials(self.user, self.password, self.auth_mode, self.realm)
         endpoint.setQuery(query)
+        endpoint.setReturnFormat(JSON)
         response = endpoint.query().convert()
         return response
 
@@ -272,6 +274,23 @@ class AuthenticationTests(unittest.TestCase):
 
     def testDigestAuthentication(self):
         response = self.runQuery(SELECT_QUERY)
+        expected_response = {
+            u'head': {
+                u'link': [],
+                u'vars': [u's', u'p', u'o']
+            },
+            u'results': {
+                u'distinct': False,
+                u'bindings': [
+                    {
+                        u'p': {u'type': u'uri', u'value': u'predicate'},
+                        u's': {u'type': u'uri', u'value': u'instance'},
+                        u'o': {u'type': u'uri', u'value': u'object'}
+                    }
+                ],
+            u'ordered': True}
+        }
+        self.assertEqual(response, expected_response)
 
 
 if __name__ == "__main__":

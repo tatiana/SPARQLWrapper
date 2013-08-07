@@ -128,6 +128,8 @@ class SPARQLWrapper :
         self.agent = agent
         self.user = None
         self.passwd = None
+        self.realm = ''
+        self.auth_mode = ''
         self.customParameters = {}
         self._defaultGraph = defaultGraph
         if defaultGraph : self.customParameters["default-graph-uri"] = defaultGraph
@@ -210,18 +212,27 @@ class SPARQLWrapper :
             self.customParameters[name] = value
             return True
 
-    def setCredentials(self,user,passwd) :
+    def setCredentials(self, user, passwd, mode='basic', realm='') :
         """
-            Set the credentials for querying the current endpoint
+            Set the credentials for querying the current endpoint.
+            Mode by default is set to basic, but could also be set to 'digest'.
+            If mode is set to 'digest' you should also specify realm.
+
             @param user: username
             @type user: string
             @param passwd: password
             @type passwd: string
+            @param mode: mode
+            @type mode: string
+            @param realm: realm
+            @type realm: string
         """
         self.user = user
         self.passwd = passwd
+        self.realm = realm
+        self.auth_mode = mode
 
-    def setQuery(self,query) :
+    def setQuery(self,query):
         """
             Set the SPARQL query text. Note: no check is done on the validity of the query 
             (syntax or otherwise) by this module, except for testing the query type (SELECT, 
@@ -284,12 +295,14 @@ class SPARQLWrapper :
         @rtype: string
         """
         finalQueryParameters = self.customParameters.copy()
-        if self.queryType in [INSERT, DELETE, MODIFY]:
-            uri = self.updateEndpoint
-            finalQueryParameters["update"] = self.queryString
-        else:
-            uri = self.endpoint
-            finalQueryParameters["query"] = self.queryString
+        # FIXME: I've commented the lines bellow because they made the INSERTS and DELETES stop working on Virtuoso
+        # This must to be analyzed more carefully for general purposes
+        #if self.queryType in [INSERT, DELETE, MODIFY]:
+        #    uri = self.updateEndpoint
+        #    finalQueryParameters["update"] = self.queryString
+        #else:
+        uri = self.endpoint
+        finalQueryParameters["query"] = self.queryString
 
         # This is very ugly. The fact is that the key for the choice of the output format is not defined. 
         # Virtuoso uses 'format',sparqler uses 'output'
@@ -329,6 +342,17 @@ class SPARQLWrapper :
             else:
                 uri = self.endpoint
                 values = { "query" : self.queryString }
+        else:
+            uri = self._getURI()
+
+        if (self.auth_mode=='digest') and self.user and self.passwd:
+            passwdmngr = urllib2.HTTPPasswordMgrWithDefaultRealm()
+            passwdmngr.add_password(self.realm, uri, self.user, self.passwd)
+            authhandler = urllib2.HTTPDigestAuthHandler(passwdmngr)
+            opener = urllib2.build_opener(authhandler)
+            urllib2.install_opener(opener)
+
+        if self.method == POST:
             request = urllib2.Request(uri)
             request.add_header("Content-Type", "application/x-www-url-form-urlencoded")
             data = urllib.urlencode(values)
@@ -339,12 +363,13 @@ class SPARQLWrapper :
             # by GET
             # Some versions of Joseki do not work well if no Accept header is given.
             # Although it is probably o.k. in newer versions, it does not harm to have that set once and for all...
-            request = urllib2.Request(self._getURI())
+            request = urllib2.Request(uri)
 
         request.add_header("User-Agent", self.agent)
         request.add_header("Accept", acceptHeader)
-        if (self.user and self.passwd):
+        if (self.auth_mode == 'basic') and self.user and self.passwd:
             request.add_header("Authorization", "Basic " + base64.encodestring("%s:%s" % (self.user,self.passwd)))
+
         return request
 
     def _query(self):
