@@ -226,6 +226,53 @@ class SPARQLWrapperTests(unittest.TestCase):
 #        result = self.__generic(queryManyPrefixes, XML, GET)
 
 
+INSERT_QUERY = """
+INSERT DATA INTO <http://example.com/>
+{
+    <instance> <predicate> <object> .
+}
+"""
+
+SELECT_QUERY = """
+SELECT FROM <http://example.com/>
+{
+    ?s ?p ?o .
+}
+"""
+
+DELETE_QUERY = """
+DELETE FROM <http://example.com/>
+{ ?s ?p ?o }
+WHERE
+{ ?s ?p ?o }
+"""
+
+
+class AuthenticationTests(unittest.TestCase):
+
+    user = "test"
+    password = "test"
+    realm = "SPARQL"
+    url = "http://localhost:8890/sparql-auth"
+    graph = "http://example.com/"
+
+    def runQuery(self, query):
+        endpoint = SPARQLWrapper(self.url)
+        endpoint.setCredentials(self.user, self.password)
+        endpoint.setReturnFormat(JSON)
+        endpoint.setQuery(query)
+        response = endpoint.query().convert()
+        return response
+
+    def setUp(self):
+        response = self.runQuery(INSERT_QUERY)
+
+    def tearDown(self):
+        response = self.runQuery(DELETE_QUERY)
+
+    def testDigestAuthentication(self):
+        response = self.runQuery(SELECT_QUERY)
+
+
 if __name__ == "__main__":
     unittest.main()
-
