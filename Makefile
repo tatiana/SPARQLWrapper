@@ -1,9 +1,13 @@
-USER=dba
-PWD=dba
-VIRTUOSO_HOST=localhost
+# SPARQLWrapper Makefile
 
-setup:
-	isql $(VIRTUOSO_HOST) $(USER) $(PWD) ./scripts/virtuoso_setup.isql
+NAME=SPARQLWrapper
+DESTDIR =
+DOCDIR=doc
+PYTHON=python
 
-tests:
-	PYTHONPATH=src/:$PYTHONPATH python test/tests.py
+doc:	clean
+	mkdir -p $(DOCDIR)
+	epydoc -v -n $(NAME) -o $(DOCDIR) --html SPARQLWrapper
+
+clean:
+	rm -rf $(DOCDIR)
